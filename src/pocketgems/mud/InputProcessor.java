@@ -119,6 +119,10 @@ public class InputProcessor {
 			Entity thing = EntityFactory.createThing();
 			thing.getIdentityComponent().id = arguments.get(0);
 			world.AddEntity(thing);
+		} else if (command.equals("createitem")) {
+			Entity item = EntityFactory.createItem();
+			item.getIdentityComponent().id = arguments.get(0);
+			world.AddEntity(item);
 		} else if (command.equals("setname")) {
 			Entity entity = world.GetEntity(arguments.get(0));
 			entity.getDescriptionComponent().name = arguments.get(1);
@@ -140,6 +144,15 @@ public class InputProcessor {
 			Entity thing = world.GetEntity(arguments.get(0));
 			Entity room = world.GetEntity(arguments.get(1));
 			moveToRoom(world, thing, room.getIdentityComponent().id);
+		} else if (command.equals("get")) {
+			Entity item = entityInRoom(world, arguments.get(0));	
+			moveItemToPlayerInventory(world, item);
+		} else if (command.equals("drop")) {
+			String keyword = arguments.get(0);
+			Entity item = entityInInventory(world, keyword);
+			dropItemFromIventory(world, item);
+		} else if(command.equals("inventory")) {
+			getPlayerInventory(world);
 		} else if ((command.equals("look")) || (command.equals("l"))) {
 			if (arguments.size() == 0) {
 				Entity room = world.GetPlayer().getLocationComponent().room(world);
@@ -206,6 +219,63 @@ public class InputProcessor {
 		
 		return true;
 	}
+	
+	protected void getPlayerInventory(World world) throws ComponentNotFoundException, EntityNotFoundException {
+		InventoryComponent inventoryComponent = world.GetPlayer().getInventoryComponent();
+		
+		if(inventoryComponent.itemIds.size() == 0) {
+			System.out.println("There are no items in your inventory");
+			return;
+		}
+		
+		System.out.println("You have " + inventoryComponent.itemIds.size() + " items in your inventory:");
+		
+		for(String itemId : inventoryComponent.itemIds) {
+			Entity item = world.GetEntity(itemId);
+			System.out.println(item.getDescriptionComponent().name + ": " + item.getDescriptionComponent().description);
+		}
+	}
+	
+	protected void dropItemFromIventory(World world, Entity entity) throws EntityNotFoundException, ComponentNotFoundException {
+		IdentityComponent identityComponent = entity.getIdentityComponent();
+		Entity player = world.GetPlayer();
+		Entity room = player.getLocationComponent().room(world);
+		
+		if(room != null) {
+			room.getRoomComponent().inhabitantIds.add(identityComponent.id);
+		} else {
+			System.out.println("You need to enter a room before dropping an item");
+			return;
+		}
+		
+		player.getInventoryComponent().itemIds.remove(identityComponent.id);
+		
+		System.out.println("You drop " + world.GetEntity(identityComponent.id).getDescriptionComponent().description);
+	}
+	
+	protected void moveItemToPlayerInventory(World world, Entity entity) throws EntityNotFoundException, ComponentNotFoundException {
+		
+		IdentityComponent identityComponent = entity.getIdentityComponent();
+		LocationComponent locationComponent = entity.getLocationComponent();
+		Entity room = locationComponent.room(world);
+		try {
+		 TypeComponent typeComponent = entity.getTypeComponent();
+		 if(typeComponent.type != "item") {
+			 System.out.println("You can only take objects of type Item from the room");
+			 return;
+		 }
+		} catch (ComponentNotFoundException e){
+			System.out.println("You can only take objects of type Item from the room");
+			return;
+		}
+		
+		if(room != null) {
+			room.getRoomComponent().inhabitantIds.remove(identityComponent.id);
+		}
+		
+		System.out.println("You acquire " + entity.getDescriptionComponent().description);
+		world.GetPlayer().getInventoryComponent().itemIds.add(identityComponent.id);
+	}
 
 	protected void moveToRoom(World world, Entity entity, String destinationRoomId)
 			throws ComponentNotFoundException, EntityNotFoundException {
@@ -223,7 +293,22 @@ public class InputProcessor {
 		destinationRoomComponent.inhabitantIds.add(identityComponent.id);
 	}
 
-	
+	protected Entity entityInInventory(World world, String keyword) throws ComponentNotFoundException, EntityNotFoundException {
+		InventoryComponent inventoryComponent = world.GetPlayer().getInventoryComponent();
+		
+		for(String itemId : inventoryComponent.itemIds) {
+			Entity item = world.GetEntity(itemId);
+			DescriptionComponent descriptionComponent = item.getDescriptionComponent();
+			if(descriptionComponent != null) {
+				if(descriptionComponent.keywords.contains(keyword)) {
+					return item;
+				}
+			}
+		}
+		
+		throw new EntityNotFoundException(keyword);
+		
+	}
 
 	protected Entity entityInRoom(World world, String keyword)
 			throws ComponentNotFoundException, EntityNotFoundException {

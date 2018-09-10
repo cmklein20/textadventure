@@ -5,6 +5,8 @@ import pocketgems.mud.components.IdentityComponent;
 import pocketgems.mud.components.LocationComponent;
 import pocketgems.mud.components.PortalComponent;
 import pocketgems.mud.components.RoomComponent;
+import pocketgems.mud.components.InventoryComponent;
+import pocketgems.mud.components.TypeComponent;
 
 public abstract class EntityFactory {
 	public static Entity createRoom() {
@@ -20,6 +22,16 @@ public abstract class EntityFactory {
 		entity.addComponent(new IdentityComponent());
 		entity.addComponent(new DescriptionComponent());
 		entity.addComponent(new LocationComponent());
+		return entity;
+	}
+	
+	public static Entity createItem() {
+		Entity entity = new Entity();
+		entity.addComponent(new IdentityComponent());
+		entity.addComponent(new DescriptionComponent());
+		entity.addComponent(new LocationComponent());
+		
+		entity.addComponent(new TypeComponent("item"));
 		return entity;
 	}
 
@@ -45,6 +57,12 @@ public abstract class EntityFactory {
 		entity.addComponent(descriptionComponent);
 		
 		entity.addComponent(new LocationComponent());
+		
+		InventoryComponent inventoryComponent = new InventoryComponent();
+		inventoryComponent.name = "Player Inventory";
+		inventoryComponent.description = "Holds the items that the player picks up";
+		
+		entity.addComponent(inventoryComponent);
 		
 		return entity;
 	}
